@@ -14,6 +14,7 @@ enum RispExp {
   Bool(bool),
   Symbol(String),
   Number(f64),
+  Str(String),
   List(Vec<RispExp>),
   Func(fn(&[RispExp]) -> Result<RispExp, RispErr>),
   Lambda(RispLambda),
@@ -31,6 +32,7 @@ impl fmt::Display for RispExp {
       RispExp::Bool(a) => a.to_string(),
       RispExp::Symbol(s) => s.clone(),
       RispExp::Number(n) => n.to_string(),
+      RispExp::Str(s) => s.clone(),
       RispExp::List(list) => {
         let xs: Vec<String> = list
           .iter()
@@ -63,12 +65,34 @@ struct RispEnv<'a> {
 */
 
 fn tokenize(expr: String) -> Vec<String> {
-  expr
-    .replace("(", " ( ")
-    .replace(")", " ) ")
-    .split_whitespace()
-    .map(|x| x.to_string())
-    .collect()
+  let mut tokens = Vec::new();
+  let mut buf_str = String::new();
+
+  for c in expr.chars() {
+    if c == '(' || c == ')' {
+      if buf_str.len() > 0 {
+	tokens.push(buf_str);
+	buf_str = String::new();
+      }
+      tokens.push(c.to_string());
+      continue;
+    }
+
+    if c == ' ' {
+      tokens.push(buf_str);
+      buf_str = String::new();
+      continue;
+    }
+    buf_str.push(c);
+  }
+
+  if false {
+    for token in tokens.iter() {
+      println!("token {}", token);
+    }
+  }
+
+  tokens
 }
 
 fn parse<'a>(tokens: &'a [String]) -> Result<(RispExp, &'a [String]), RispErr> {
@@ -141,7 +165,12 @@ fn default_env<'a>() -> RispEnv<'a> {
     "httpget".to_string(),
     RispExp::Func(
       |args: &[RispExp]| -> Result<RispExp, RispErr> {
-	println!("httpget! {}", args[0]);
+	if args.len() > 0 {
+	  println!("httpget! {}", args[0]);
+	}
+	else {
+	  println!("httpget called without args");
+	}
 	Ok(RispExp::Number(1.0))
       }
     )
@@ -386,7 +415,8 @@ fn eval(exp: &RispExp, env: &mut RispEnv) -> Result<RispExp, RispErr> {
           format!("unexpected symbol k='{}'", k)
         )
       )
-    ,
+      ,
+    RispExp::Str(_a) => Ok(exp.clone()),
     RispExp::Bool(_a) => Ok(exp.clone()),
     RispExp::Number(_a) => Ok(exp.clone()),
 
@@ -440,8 +470,9 @@ fn slurp_expr() -> Result<String, RispIOErr> {
   
   let red = io::stdin().read_line(&mut expr)
     .expect("Failed to read line");
+
   if red == 0 {
-    println!();
+    println!(); // newline to clear up the terminal
     return Err(RispIOErr::Reason("EOF".to_string()));
   }
 
@@ -451,7 +482,7 @@ fn slurp_expr() -> Result<String, RispIOErr> {
 fn main() {
   let env = &mut default_env();
   loop {
-    print!("risp > ");
+    print!("risp> ");
     io::stdout().flush().unwrap();
     match slurp_expr() {
       Ok(expr) => {
