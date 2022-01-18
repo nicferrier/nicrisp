@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 use std::fmt;
 use std::io;
+use std::io::Write;
 use std::num::ParseFloatError;
 use std::rc::Rc;
 
@@ -440,7 +441,8 @@ fn slurp_expr() -> Result<String, RispIOErr> {
   let red = io::stdin().read_line(&mut expr)
     .expect("Failed to read line");
   if red == 0 {
-     return Err(RispIOErr::Reason("EOF".to_string()));
+    println!();
+    return Err(RispIOErr::Reason("EOF".to_string()));
   }
 
   Ok(expr)
@@ -449,13 +451,14 @@ fn slurp_expr() -> Result<String, RispIOErr> {
 fn main() {
   let env = &mut default_env();
   loop {
-    println!("risp >");
+    print!("risp > ");
+    io::stdout().flush().unwrap();
     match slurp_expr() {
       Ok(expr) => {
 	match parse_eval(expr, env) {
-	  Ok(res) => println!("// 🔥 => {}", res),
+	  Ok(res) => println!("=> {}", res),
 	  Err(e) => match e {
-            RispErr::Reason(msg) => println!("// 🙀 => {}", msg),
+            RispErr::Reason(msg) => println!("=> {}", msg),
 	  },
 	}
       },
