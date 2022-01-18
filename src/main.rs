@@ -128,7 +128,7 @@ macro_rules! ensure_tonicity {
           Some(x) => $check_fn(prev, x) && f(x, &xs[1..]),
           None => true,
         }
-      };
+      }
       Ok(RispExp::Bool(f(first, rest)))
     }
   }};
@@ -136,6 +136,15 @@ macro_rules! ensure_tonicity {
 
 fn default_env<'a>() -> RispEnv<'a> {
   let mut data: HashMap<String, RispExp> = HashMap::new();
+  data.insert(
+    "httpget".to_string(),
+    RispExp::Func(
+      |args: &[RispExp]| -> Result<RispExp, RispErr> {
+	println!("httpget! {}", args[0]);
+	Ok(RispExp::Number(1.0))
+      }
+    )
+  );
   data.insert(
     "+".to_string(), 
     RispExp::Func(
@@ -420,25 +429,42 @@ fn parse_eval(expr: String, env: &mut RispEnv) -> Result<RispExp, RispErr> {
   Ok(evaled_exp)
 }
 
-fn slurp_expr() -> String {
+#[derive(Debug)]
+enum RispIOErr {
+  Reason(String),
+}
+  
+fn slurp_expr() -> Result<String, RispIOErr> {
   let mut expr = String::new();
   
-  io::stdin().read_line(&mut expr)
+  let red = io::stdin().read_line(&mut expr)
     .expect("Failed to read line");
-  
-  expr
+  if red == 0 {
+     return Err(RispIOErr::Reason("EOF".to_string()));
+  }
+
+  Ok(expr)
 }
 
 fn main() {
   let env = &mut default_env();
   loop {
     println!("risp >");
-    let expr = slurp_expr();
-    match parse_eval(expr, env) {
-      Ok(res) => println!("// 🔥 => {}", res),
-      Err(e) => match e {
-        RispErr::Reason(msg) => println!("// 🙀 => {}", msg),
+    match slurp_expr() {
+      Ok(expr) => {
+	match parse_eval(expr, env) {
+	  Ok(res) => println!("// 🔥 => {}", res),
+	  Err(e) => match e {
+            RispErr::Reason(msg) => println!("// 🙀 => {}", msg),
+	  },
+	}
       },
+      Err(_e) => break,
     }
   }
 }
+
+/* Local Variables: */
+/* mode: rust */
+/* rust-indent-offset: 2 */
+/* End: */
