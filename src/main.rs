@@ -67,8 +67,31 @@ struct RispEnv<'a> {
 fn tokenize(expr: String) -> Vec<String> {
   let mut tokens = Vec::new();
   let mut buf_str = String::new();
+  let mut in_quote = false;
 
   for c in expr.chars() {
+    if c == '"' && in_quote {
+      buf_str.push('"');
+      tokens.push(buf_str);
+      in_quote = false;
+      buf_str = String::new();
+      continue;
+    }
+
+    if c == '"' && !in_quote {
+      in_quote = true;
+      if buf_str.len() > 0 {
+	tokens.push(buf_str);
+      }
+      buf_str = String::from("\"");
+      continue;
+    }
+
+    if in_quote {
+      buf_str.push(c);
+      continue;
+    }
+
     if c == '(' || c == ')' {
       if buf_str.len() > 0 {
 	tokens.push(buf_str);
@@ -78,13 +101,16 @@ fn tokenize(expr: String) -> Vec<String> {
       continue;
     }
 
-    if c == ' ' {
+    if c == ' ' || c == '\n' {
       tokens.push(buf_str);
       buf_str = String::new();
       continue;
     }
+
     buf_str.push(c);
   }
+
+  tokens.push(buf_str);
 
   if false {
     for token in tokens.iter() {
@@ -129,6 +155,9 @@ fn parse_atom(token: &str) -> RispExp {
     "true" => RispExp::Bool(true),
     "false" => RispExp::Bool(false),
     _ => {
+      if token.len() > 0 && token.chars().nth(0).unwrap() == '"' {
+	return RispExp::Str(token.to_string());
+      }
       let potential_float: Result<f64, ParseFloatError> = token.parse();
       match potential_float {
         Ok(v) => RispExp::Number(v),
@@ -341,6 +370,11 @@ fn eval_built_in_form(
 }
 
 fn env_get(k: &str, env: &RispEnv) -> Option<RispExp> {
+  if false {
+    for (key, value) in &env.data {
+      println!("env key {}: {}", key, value);
+    }
+  }
   match env.data.get(k) {
     Some(exp) => Some(exp.clone()),
     None => {
@@ -414,8 +448,7 @@ fn eval(exp: &RispExp, env: &mut RispEnv) -> Result<RispExp, RispErr> {
         RispErr::Reason(
           format!("unexpected symbol k='{}'", k)
         )
-      )
-      ,
+      ),
     RispExp::Str(_a) => Ok(exp.clone()),
     RispExp::Bool(_a) => Ok(exp.clone()),
     RispExp::Number(_a) => Ok(exp.clone()),
