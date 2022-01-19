@@ -4,6 +4,7 @@ use std::io;
 use std::io::Write;
 use std::num::ParseFloatError;
 use std::rc::Rc;
+use reqwest::blocking::get as httpget;
 
 /*
   Types
@@ -59,6 +60,7 @@ struct RispEnv<'a> {
   data: HashMap<String, RispExp>,
   outer: Option<&'a RispEnv<'a>>,
 }
+
 
 /*
   Parse
@@ -156,7 +158,9 @@ fn parse_atom(token: &str) -> RispExp {
     "false" => RispExp::Bool(false),
     _ => {
       if token.len() > 0 && token.chars().nth(0).unwrap() == '"' {
-	return RispExp::Str(token.to_string());
+	let s = token.to_string();
+	let val = &s[1..s.len() - 1];
+	return RispExp::Str(val.to_string());
       }
       let potential_float: Result<f64, ParseFloatError> = token.parse();
       match potential_float {
@@ -194,13 +198,31 @@ fn default_env<'a>() -> RispEnv<'a> {
     "httpget".to_string(),
     RispExp::Func(
       |args: &[RispExp]| -> Result<RispExp, RispErr> {
-	if args.len() > 0 {
-	  println!("httpget! {}", args[0]);
+	if args.len() < 1 {
+	  return Err(RispErr::Reason("pass a url".to_string()));
 	}
-	else {
-	  println!("httpget called without args");
+	let url = args[0].to_string();
+	let res = match httpget(url) {
+	  Ok(response) => Box::new(response),
+	  Err(e) => return Err(RispErr::Reason(e.to_string())),
+	};
+
+	let status = res.status().as_u16() as f64;
+	let res_url = res.url();
+	let headers = res.headers();
+	let mut header_list: Vec<RispExp> = Vec::new();
+	for (name, value) in headers.iter() {
+	  let mut pair = Vec::new();
+	  pair.push(RispExp::Str(name.to_string()));
+	  pair.push(RispExp::Str(value.to_str().unwrap().to_string()));
+	  header_list.push(RispExp::List(pair));
 	}
-	Ok(RispExp::Number(1.0))
+	let response_list: Vec<RispExp> = vec![
+	  RispExp::Number(status),
+	  RispExp::Str(res_url.to_string()),
+	  RispExp::List(header_list)
+	];
+	Ok(RispExp::List(response_list))
       }
     )
   );
@@ -209,7 +231,6 @@ fn default_env<'a>() -> RispEnv<'a> {
     RispExp::Func(
       |args: &[RispExp]| -> Result<RispExp, RispErr> {
         let sum = parse_list_of_floats(args)?.iter().fold(0.0, |sum, a| sum + a);
-        
         Ok(RispExp::Number(sum))
       }
     )

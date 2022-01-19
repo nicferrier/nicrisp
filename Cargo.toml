@@ -5,3 +5,6 @@ authors = ["stopachka <stepan.p@gmail.com>"]
 edition = "2018"
 
 [dependencies]
+reqwest = { version = "0.11.9", default-features=false, features = ["rustls-tls", "json", "blocking"]}
+
+# End
