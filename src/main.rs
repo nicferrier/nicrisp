@@ -307,6 +307,38 @@ fn default_env<'a>() -> RispEnv<'a> {
       }
     )
   );
+  /*data.insert(
+    "map".to_string(),
+    RispExp::Func(
+      |args: &[RispExp]| -> Result<RispExp, RispErr> {
+	if args.len() < 2 {
+	  return Err(RispErr::Reason("map requires a function and a list".to_string()));
+	}
+	let func = args[0];
+	let list = args[1].clone();
+	let list = match list {
+	  RispExp::List(l) => l,
+	  RispExp::Str(s) => s.chars()
+	    .map(|c| RispExp::Str(c.to_string()))
+	    .collect(),
+	  _ => return Err(RispErr::Reason("must be a list".to_string()))
+	};
+	for i in list {
+	  match func {
+	    RispExp::Lambda(lambda) => {
+              let new_env = &mut env_for_lambda(lambda.params_exp, i, env)?;
+              eval(&lambda.body_exp, new_env)
+            },
+            _ => Err(
+              RispErr::Reason("first form must be a function".to_string())
+            ),
+	  }
+	  println!("list value {}", i);
+	}
+	Ok(RispExp::Str("map result".to_string()))
+      }
+    )
+  );*/
   data.insert(
     "+".to_string(), 
     RispExp::Func(
@@ -454,6 +486,33 @@ fn eval_lambda_args(arg_forms: &[RispExp]) -> Result<RispExp, RispErr> {
   )
 }
 
+fn eval_repeat_args(arg_forms: &[RispExp], env: &mut RispEnv) -> Result<RispExp, RispErr> {
+  let (func_form, rest) = arg_forms.split_first().ok_or(
+    RispErr::Reason(
+      "expected function form".to_string(),
+    )
+  )?;
+  let lambda = eval(func_form, env)?;
+  let lambda = match lambda {
+    RispExp::Lambda(f) => f,
+    _ => return Err(RispErr::Reason("not a function".to_string()))
+  };
+  let list_form = rest.first().ok_or(RispErr::Reason("expected list".to_string()))?;
+  let list_val =  eval(list_form, env)?;
+  match list_val {
+    RispExp::List(l) => {
+      let mut result_vec = Vec::new();
+      for risp_val in l {
+	let args = &[risp_val];
+	let new_env = &mut env_for_lambda(lambda.params_exp.clone(), args, env)?;
+        let result_val = eval(&lambda.body_exp, new_env)?;
+	result_vec.push(result_val);
+      }
+      Ok(RispExp::List(result_vec))
+    },
+    _ => Err(RispErr::Reason("not a list".to_string()))
+  }
+}
 
 fn eval_built_in_form(
   exp: &RispExp, arg_forms: &[RispExp], env: &mut RispEnv
@@ -464,6 +523,7 @@ fn eval_built_in_form(
         "if" => Some(eval_if_args(arg_forms, env)),
         "def" => Some(eval_def_args(arg_forms, env)),
         "fn" => Some(eval_lambda_args(arg_forms)),
+	"repeat" => Some(eval_repeat_args(arg_forms, env)),
         _ => None,
       }
     ,
