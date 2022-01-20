@@ -39,6 +39,12 @@ These are all legal comments and equivalent in nicrisp:
 
 There are no multiline comments in nicrisp.
 
+A more complete code example, perhaps?
+
+```
+(def a "hello") ;; comment
+```
+
 ### strings
 
 nicrisp has strings.
@@ -118,5 +124,20 @@ use it in heterogenous environments, perhaps you don't have the libssl
 available on this platform... but nicrisp static would still have a
 functioning `httpget`.
 
+## bad stuff
+
+The nicrisp parser still sucks.
+
+It does not handle multiline forms _at all_.
+
+So you _cannot_ write:
+
+```
+(def
+  a
+  "hello")
+```
+
+in nicrisp yet.
 
 _fin_
