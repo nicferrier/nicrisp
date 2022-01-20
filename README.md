@@ -25,6 +25,15 @@ The strings don't have any escaping in them right now.
 
 strings are double quoted lists of characters.
 
+### json structures
+
+nicrisp has support for json objects.
+
+There is currently no parser support for json values so the only way
+they could currently get in your program would be `httpget`.
+
+Literal support in the parser will follow.
+
 
 ### separation between display values and values
 
@@ -63,10 +72,12 @@ For example:
 
 ```
 (httpget "https://google.com")
-=> (200
+=> (200,
     (("content-type" "text/html")
-     (transfer-encoding "chunked"))
-    BODY
+     (transfer-encoding "chunked")),
+    { "data": "object",
+      "key": "value",
+      "number-value": 10 }
    )
 ```
 
