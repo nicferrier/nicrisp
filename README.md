@@ -1,7 +1,8 @@
-# Risp 
+# nicrisp 
 
-Risp is a toy lisp in Rust that was written by Stepan Parunashvili as
-a demonstration of the Norvig "make a lisp" method.
+nicrisp is a toy+1 based on the lisp in Rust that was written by
+Stepan Parunashvili as a demonstration of the Norvig "make a lisp"
+method.
 
 Stepan wrote a good essay about the process [here](https://m.stopa.io/risp-lisp-in-rust-90a0dad5b116).
 
