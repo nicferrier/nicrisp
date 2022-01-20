@@ -73,7 +73,7 @@ For example:
 ```
 (httpget "https://jsonplaceholder.typicode.com/posts/1")
 => (200,
-    (("content-type" "text/html")
+    (("content-type" "application/json")
      (transfer-encoding "chunked")),
     { "data": "object",
       "key": "value",
@@ -81,7 +81,8 @@ For example:
    )
 ```
 
-I haven't coded the parts for the body yet.
+NB: this is not an exact representation of the JSON at the specified
+url.
 
 #### num \<max\> \[\<start\>\]
 
