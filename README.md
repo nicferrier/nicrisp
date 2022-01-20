@@ -16,6 +16,28 @@ Can we make a statically compiled scripting language which has
 
 Nic has extended Risp in a number of small ways:
 
+### comments
+
+nicrisp has two styles of comment: Lisp comments and Shell comments.
+
+Lisp comments are as usual for Lisps, a single `;` starts a comment
+that carries till the end of the current line. Conventionally Lisp
+programmers use double `;` sometimes.
+
+Shell comments are used in Unix shells, like bash and begin with the
+hash or pound symbol, depending on your locale: `#` and continue till
+the end of the line.
+
+These are all legal comments and equivalent in nicrisp:
+
+```
+; this is a comment
+;; this is a comment
+# this is a comment
+######### this is a comment
+```
+
+There are no multiline comments in nicrisp.
 
 ### strings
 

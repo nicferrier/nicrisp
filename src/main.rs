@@ -98,7 +98,7 @@ fn tokenize(expr: String) -> Vec<String> {
       continue;
     }
 
-    if c == ';'  && !in_quote {
+    if (c == ';' || c == '#') && !in_quote {
       in_comment = true;
       continue;
     }
@@ -135,8 +135,10 @@ fn tokenize(expr: String) -> Vec<String> {
     }
 
     if c == ' ' || c == '\n' {
-      tokens.push(buf_str);
-      buf_str = String::new();
+      if buf_str.len() > 0 {
+	tokens.push(buf_str);
+	buf_str = String::new();
+      }
       continue;
     }
 
