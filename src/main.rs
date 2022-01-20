@@ -6,10 +6,6 @@ use std::num::ParseFloatError;
 use std::rc::Rc;
 use reqwest::blocking::get as httpget;
 
-/*
-  Types
- */
-
 trait RispValueString {
   fn lisp_val(&self) -> String;
 }
@@ -31,6 +27,7 @@ struct RispLambda {
   body_exp: Rc<RispExp>,
 }
 
+// Conventional rust to_string used for printable form
 impl fmt::Display for RispExp {
   fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
     let str = match self {
@@ -56,6 +53,7 @@ impl fmt::Display for RispExp {
   }
 }
 
+// For the internal value, not the printable form
 impl RispValueString for RispExp {
   fn lisp_val(&self) -> String {
     match self {
@@ -64,7 +62,6 @@ impl RispValueString for RispExp {
     }
   }
 }
-
 
 #[derive(Debug)]
 enum RispErr {
