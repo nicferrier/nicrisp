@@ -602,8 +602,10 @@ fn parse_eval(expr: String, env: &mut RispEnv) -> Option<Result<RispExp, RispErr
   }
 
   let (parsed_exp, _) = parse(tokens).unwrap();
-  let evaled_exp = eval(&parsed_exp, env).unwrap();
-  Some(Ok(evaled_exp))
+  match eval(&parsed_exp, env) {
+    Ok(evaled_exp) => Some(Ok(evaled_exp)),
+    Err(e) => Some(Err(e))
+  }
 }
 
 #[derive(Debug)]
