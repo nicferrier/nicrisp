@@ -12,6 +12,38 @@ some things about lanaguages that he's been thinking about.
 Can we make a statically compiled scripting language which has
 "batteries included"?
 
+## Risp core language
+
+Let's just have a simple summary here:
+
+```
+(def a 10)
+=> a
+(def b 20.0)
+=> b
+(+ a b)
+=> 30
+(def b 20.1)
+=> b
+(+ a b)
+=> 30.1
+(> a b)
+=> false
+(<= a b)
+=> true
+(def f (fn (x) (+ 1 x)))
+=> f
+(f 10)
+=> 11
+(if (< a b) 7 9)
+=> 7
+(def a 45.7)
+=> a
+(if (< a b) 7 9)
+=> 9
+```
+
+That's all Risp is. Very simple.
 
 ## Nic's extensions
 
