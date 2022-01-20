@@ -83,7 +83,7 @@ For example:
 
 I haven't coded the parts for the body yet.
 
-#### num <max> [<start>]
+#### num <max> \[<start>\]
 
 Takes a `max` (an int) and an optional `start` (an int, by default
 `0`) and returns a list of numbers between `start` and `max`.
