@@ -1,6 +1,15 @@
 # Risp 
 
-The code behind [this essay](https://m.stopa.io/risp-lisp-in-rust-90a0dad5b116)
+Risp is a toy lisp in Rust that was written by Stepan Parunashvili as
+a demonstration of the Norvig "make a lisp" method.
+
+Stepan wrote a good essay about the process [here](https://m.stopa.io/risp-lisp-in-rust-90a0dad5b116).
+
+Nic looked at this and is wondering whether it worked as a vehicle for
+some things about lanaguages that he's been thinking about.
+
+Can we make a statically compiled scripting language which has
+"batteries included"?
 
 
 ## Nic's extensions
