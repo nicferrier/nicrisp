@@ -8,7 +8,11 @@ use reqwest::blocking::get as httpget;
 
 /*
   Types
-*/
+ */
+
+trait RispValueString {
+  fn lisp_val(&self) -> String;
+}
 
 #[derive(Clone)]
 enum RispExp {
@@ -33,11 +37,14 @@ impl fmt::Display for RispExp {
       RispExp::Bool(a) => a.to_string(),
       RispExp::Symbol(s) => s.clone(),
       RispExp::Number(n) => n.to_string(),
-      RispExp::Str(s) => s.clone(),
+      RispExp::Str(s) => format!("\"{}\"", s),
       RispExp::List(list) => {
         let xs: Vec<String> = list
           .iter()
-          .map(|x| x.to_string())
+          .map(|x| match x {
+	    RispExp::Str(s) => format!("\"{}\"", s.to_string()),
+	    _ => x.to_string(),
+	  })
           .collect();
         format!("({})", xs.join(","))
       },
@@ -46,6 +53,15 @@ impl fmt::Display for RispExp {
     };
     
     write!(f, "{}", str)
+  }
+}
+
+impl RispValueString for RispExp {
+  fn lisp_val(&self) -> String {
+    match self {
+      RispExp::Str(s) => s.clone(),
+      _ => self.to_string()
+    }
   }
 }
 
@@ -201,7 +217,7 @@ fn default_env<'a>() -> RispEnv<'a> {
 	if args.len() < 1 {
 	  return Err(RispErr::Reason("pass a url".to_string()));
 	}
-	let url = args[0].to_string();
+	let url = args[0].lisp_val();
 	let res = match httpget(url) {
 	  Ok(response) => Box::new(response),
 	  Err(e) => return Err(RispErr::Reason(e.to_string())),
