@@ -438,9 +438,12 @@ fn env_get(k: &str, env: &RispEnv) -> Option<RispExp> {
       println!("env key {}: {}", key, value);
     }
   }
+
+  // Self quoted symbols just resolve to themselves
   if k.starts_with(":") {
     return Some(RispExp::Symbol(k.to_string()));
   }
+
   match env.data.get(k) {
     Some(exp) => Some(exp.clone()),
     None => {
