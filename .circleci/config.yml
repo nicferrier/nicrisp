@@ -12,7 +12,7 @@ jobs:
   risp-build:
     docker:
       # replace with your preferred image
-      - image: cimg/rust:stable
+      - image: cimg/rust:1.58.0
     steps:
       - checkout
       - rust/build
