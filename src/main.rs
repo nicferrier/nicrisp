@@ -86,8 +86,23 @@ fn tokenize(expr: String) -> Vec<String> {
   let mut tokens = Vec::new();
   let mut buf_str = String::new();
   let mut in_quote = false;
+  let mut in_comment = false;
 
   for c in expr.chars() {
+    if in_comment && c != '\n' {
+      continue;
+    }
+
+    if in_comment && c == '\n' {
+      in_comment = false;
+      continue;
+    }
+
+    if c == ';'  && !in_quote {
+      in_comment = true;
+      continue;
+    }
+    
     if c == '"' && in_quote {
       buf_str.push('"');
       tokens.push(buf_str);
@@ -128,7 +143,9 @@ fn tokenize(expr: String) -> Vec<String> {
     buf_str.push(c);
   }
 
-  tokens.push(buf_str);
+  if buf_str.len() > 0 {
+    tokens.push(buf_str);
+  }
 
   if false {
     for token in tokens.iter() {
@@ -576,11 +593,15 @@ fn eval(exp: &RispExp, env: &mut RispEnv) -> Result<RispExp, RispErr> {
   Repl
 */
 
-fn parse_eval(expr: String, env: &mut RispEnv) -> Result<RispExp, RispErr> {
-  let (parsed_exp, _) = parse(&tokenize(expr))?;
-  let evaled_exp = eval(&parsed_exp, env)?;
+fn parse_eval(expr: String, env: &mut RispEnv) -> Option<Result<RispExp, RispErr>> {
+  let tokens = &tokenize(expr);
+  if tokens.len() < 1 {
+    return None;
+  }
 
-  Ok(evaled_exp)
+  let (parsed_exp, _) = parse(tokens).unwrap();
+  let evaled_exp = eval(&parsed_exp, env).unwrap();
+  Some(Ok(evaled_exp))
 }
 
 #[derive(Debug)]
@@ -610,11 +631,14 @@ fn main() {
     match slurp_expr() {
       Ok(expr) => {
 	match parse_eval(expr, env) {
-	  Ok(res) => println!("=> {}", res),
-	  Err(e) => match e {
-            RispErr::Reason(msg) => println!("=> {}", msg),
+	  Some(res) => match res {
+	    Ok(res) => println!("=> {}", res),
+	    Err(e) => match e {
+              RispErr::Reason(msg) => println!("=> {}", msg),
+	    },
 	  },
-	}
+	  None => println!(""),
+	};
       },
       Err(_e) => break,
     }
