@@ -71,7 +71,7 @@ Takes a url argument and returns a list:
 For example:
 
 ```
-(httpget "https://google.com")
+(httpget "https://jsonplaceholder.typicode.com/posts/1")
 => (200,
     (("content-type" "text/html")
      (transfer-encoding "chunked")),
