@@ -5,6 +5,7 @@ use std::io::Write;
 use std::num::ParseFloatError;
 use std::rc::Rc;
 use reqwest::blocking::get as httpget;
+use serde_json;
 
 trait RispValueString {
   fn lisp_val(&self) -> String;
@@ -19,6 +20,7 @@ enum RispExp {
   List(Vec<RispExp>),
   Func(fn(&[RispExp]) -> Result<RispExp, RispErr>),
   Lambda(RispLambda),
+  Json(serde_json::Value)
 }
 
 #[derive(Clone)]
@@ -47,6 +49,7 @@ impl fmt::Display for RispExp {
       },
       RispExp::Func(_) => "Function {}".to_string(),
       RispExp::Lambda(_) => "Lambda {}".to_string(),
+      RispExp::Json(data) => format!("{}", serde_json::to_string_pretty(data).unwrap()),
     };
     
     write!(f, "{}", str)
@@ -215,6 +218,11 @@ fn default_env<'a>() -> RispEnv<'a> {
 	  return Err(RispErr::Reason("pass a url".to_string()));
 	}
 	let url = args[0].lisp_val();
+	let url = if url == "test" {
+	  "https://jsonplaceholder.typicode.com/posts/1".to_string()
+	} else {
+	  url
+	};
 	let res = match httpget(url) {
 	  Ok(response) => Box::new(response),
 	  Err(e) => return Err(RispErr::Reason(e.to_string())),
@@ -230,11 +238,23 @@ fn default_env<'a>() -> RispEnv<'a> {
 	  pair.push(RispExp::Str(value.to_str().unwrap().to_string()));
 	  header_list.push(RispExp::List(pair));
 	}
-	let response_list: Vec<RispExp> = vec![
+
+	let mut response_list: Vec<RispExp> = vec![
 	  RispExp::Number(status),
 	  RispExp::Str(res_url.to_string()),
 	  RispExp::List(header_list)
 	];
+
+	let content_type = headers.get("content-type").unwrap().to_str().unwrap();
+	if content_type.starts_with("application/json") {
+	  let text_content = res.text_with_charset("utf-8").unwrap();
+	  let json = match serde_json::from_str(&text_content) {
+	    Ok(data) => data,
+	    Err(e) => return Err(RispErr::Reason(e.to_string()))
+	  };
+	  let json = RispExp::Json(json);
+	  response_list.push(json);
+	}
 	Ok(RispExp::List(response_list))
       }
     )
@@ -548,6 +568,7 @@ fn eval(exp: &RispExp, env: &mut RispEnv) -> Result<RispExp, RispErr> {
     },
     RispExp::Func(_) => Err(RispErr::Reason("unexpected form".to_string())),
     RispExp::Lambda(_) => Err(RispErr::Reason("unexpected form".to_string())),
+    RispExp::Json(_) => Ok(exp.clone()),
   }
 }
 
