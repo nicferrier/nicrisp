@@ -109,7 +109,7 @@ but the value (obviously and naturally) does not include the quotes.
 There are no other types that have a different printable form right
 now.
 
-## loops - kind of
+### loops - kind of
 
 A basic looping map like builtin exists:
 
