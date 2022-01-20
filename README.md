@@ -37,7 +37,7 @@ Literal support in the parser will follow.
 
 ### separation between display values and values
 
-strings have a display value like:
+nicrisp strings have a display value and a reader form like:
 
 ```
 "hello"
