@@ -160,7 +160,7 @@ For example:
 (httpget "https://jsonplaceholder.typicode.com/posts/1")
 => (200,
     (("content-type" "application/json")
-     (transfer-encoding "chunked")),
+     ("transfer-encoding" "chunked")),
     { "data": "object",
       "key": "value",
       "number-value": 10 }
