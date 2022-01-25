@@ -4,7 +4,6 @@ use std::io;
 use std::io::Write;
 use std::num::ParseFloatError;
 use std::rc::Rc;
-use reqwest::blocking::get as httpget;
 use serde_json;
 
 trait RispValueString {
@@ -12,7 +11,7 @@ trait RispValueString {
 }
 
 #[derive(Clone)]
-enum RispExp {
+pub enum RispExp {
   Bool(bool),
   Symbol(String),
   Number(f64),
@@ -23,8 +22,13 @@ enum RispExp {
   Json(serde_json::Value)
 }
 
+mod lists;
+mod math;
+mod http;
+mod jsontypes;
+
 #[derive(Clone)]
-struct RispLambda {
+pub struct RispLambda {
   params_exp: Rc<RispExp>,
   body_exp: Rc<RispExp>,
 }
@@ -49,7 +53,7 @@ impl fmt::Display for RispExp {
       },
       RispExp::Func(_) => "Function {}".to_string(),
       RispExp::Lambda(_) => "Lambda {}".to_string(),
-      RispExp::Json(data) => format!("{}", serde_json::to_string_pretty(data).unwrap()),
+      RispExp::Json(data) => jsontypes::display(&data),
     };
     
     write!(f, "{}", str)
@@ -67,7 +71,7 @@ impl RispValueString for RispExp {
 }
 
 #[derive(Debug)]
-enum RispErr {
+pub enum RispErr {
   Reason(String),
 }
 
@@ -213,7 +217,7 @@ fn parse_atom(token: &str) -> RispExp {
 macro_rules! ensure_tonicity {
   ($check_fn:expr) => {{
     |args: &[RispExp]| -> Result<RispExp, RispErr> {
-      let floats = parse_list_of_floats(args)?;
+      let floats = math::parse_list_of_floats(args)?;
       let first = floats.first().ok_or(RispErr::Reason("expected at least one number".to_string()))?;
       let rest = &floats[1..];
       fn f (prev: &f64, xs: &[f64]) -> bool {
@@ -229,173 +233,17 @@ macro_rules! ensure_tonicity {
 
 fn default_env<'a>() -> RispEnv<'a> {
   let mut data: HashMap<String, RispExp> = HashMap::new();
-  data.insert(
-    "httpget".to_string(),
-    RispExp::Func(
-      |args: &[RispExp]| -> Result<RispExp, RispErr> {
-	if args.len() < 1 {
-	  return Err(RispErr::Reason("pass a url".to_string()));
-	}
-	let url = args[0].lisp_val();
-	let url = if url == "test" {
-	  "https://jsonplaceholder.typicode.com/posts/1".to_string()
-	} else {
-	  url
-	};
-	let res = match httpget(url) {
-	  Ok(response) => Box::new(response),
-	  Err(e) => return Err(RispErr::Reason(e.to_string())),
-	};
-
-	let status = res.status().as_u16() as f64;
-	let res_url = res.url();
-	let headers = res.headers();
-	let mut header_list: Vec<RispExp> = Vec::new();
-	for (name, value) in headers.iter() {
-	  let mut pair = Vec::new();
-	  pair.push(RispExp::Str(name.to_string()));
-	  pair.push(RispExp::Str(value.to_str().unwrap().to_string()));
-	  header_list.push(RispExp::List(pair));
-	}
-
-	let mut response_list: Vec<RispExp> = vec![
-	  RispExp::Number(status),
-	  RispExp::Str(res_url.to_string()),
-	  RispExp::List(header_list)
-	];
-
-	let content_type = headers.get("content-type").unwrap().to_str().unwrap();
-	if content_type.starts_with("application/json") {
-	  let text_content = res.text_with_charset("utf-8").unwrap();
-	  let json = match serde_json::from_str(&text_content) {
-	    Ok(data) => data,
-	    Err(e) => return Err(RispErr::Reason(e.to_string()))
-	  };
-	  let json = RispExp::Json(json);
-	  response_list.push(json);
-	}
-	Ok(RispExp::List(response_list))
-      }
-    )
-  );
-  data.insert(
-    "num".to_string(),
-    RispExp::Func(
-      |args: &[RispExp]| -> Result<RispExp, RispErr> {
-	if args.len() < 1 {
-	  return Err(RispErr::Reason("pass a max value".to_string()));
-	}
-
-	let max = match args[0] {
-	  RispExp::Number(x) => x as i64,
-	  _ => return Err(RispErr::Reason("arg is not a number".to_string())),
-	};
-
-	let start = if args.len() < 2 { 0 } else {
-	  match args[1] {
-	    RispExp::Number(x) => x as i64,
-	    _ => return Err(RispErr::Reason("arg is not a number".to_string())),
-	  }
-	};
-
-	let mut res: Vec<RispExp> = Vec::new();
-	let r = start..max;
-	for m in r {
-	  res.push(RispExp::Number(m as f64));
-	}
-	Ok(RispExp::List(res))
-      }
-    )
-  );
-  /*data.insert(
-    "map".to_string(),
-    RispExp::Func(
-      |args: &[RispExp]| -> Result<RispExp, RispErr> {
-	if args.len() < 2 {
-	  return Err(RispErr::Reason("map requires a function and a list".to_string()));
-	}
-	let func = args[0];
-	let list = args[1].clone();
-	let list = match list {
-	  RispExp::List(l) => l,
-	  RispExp::Str(s) => s.chars()
-	    .map(|c| RispExp::Str(c.to_string()))
-	    .collect(),
-	  _ => return Err(RispErr::Reason("must be a list".to_string()))
-	};
-	for i in list {
-	  match func {
-	    RispExp::Lambda(lambda) => {
-              let new_env = &mut env_for_lambda(lambda.params_exp, i, env)?;
-              eval(&lambda.body_exp, new_env)
-            },
-            _ => Err(
-              RispErr::Reason("first form must be a function".to_string())
-            ),
-	  }
-	  println!("list value {}", i);
-	}
-	Ok(RispExp::Str("map result".to_string()))
-      }
-    )
-  );*/
-  data.insert(
-    "+".to_string(), 
-    RispExp::Func(
-      |args: &[RispExp]| -> Result<RispExp, RispErr> {
-        let sum = parse_list_of_floats(args)?.iter().fold(0.0, |sum, a| sum + a);
-        Ok(RispExp::Number(sum))
-      }
-    )
-  );
-  data.insert(
-    "-".to_string(), 
-    RispExp::Func(
-      |args: &[RispExp]| -> Result<RispExp, RispErr> {
-        let floats = parse_list_of_floats(args)?;
-        let first = *floats.first().ok_or(RispErr::Reason("expected at least one number".to_string()))?;
-        let sum_of_rest = floats[1..].iter().fold(0.0, |sum, a| sum + a);
-        
-        Ok(RispExp::Number(first - sum_of_rest))
-      }
-    )
-  );
-  data.insert(
-    "=".to_string(), 
-    RispExp::Func(ensure_tonicity!(|a, b| a == b))
-  );
-  data.insert(
-    ">".to_string(), 
-    RispExp::Func(ensure_tonicity!(|a, b| a > b))
-  );
-  data.insert(
-    ">=".to_string(), 
-    RispExp::Func(ensure_tonicity!(|a, b| a >= b))
-  );
-  data.insert(
-    "<".to_string(), 
-    RispExp::Func(ensure_tonicity!(|a, b| a < b))
-  );
-  data.insert(
-    "<=".to_string(), 
-    RispExp::Func(ensure_tonicity!(|a, b| a <= b))
-  );
-  
+  data.insert("httpget".to_string(), http::httpget_func());
+  data.insert("num".to_string(), lists::number_sequence());
+  data.insert("*".to_string(), math::mult_func());
+  data.insert("+".to_string(), math::plus_func());
+  data.insert("-".to_string(), math::minus_func());
+  data.insert("=".to_string(), RispExp::Func(ensure_tonicity!(|a, b| a == b)));
+  data.insert(">".to_string(), RispExp::Func(ensure_tonicity!(|a, b| a > b)));
+  data.insert(">=".to_string(), RispExp::Func(ensure_tonicity!(|a, b| a >= b)));
+  data.insert("<".to_string(), RispExp::Func(ensure_tonicity!(|a, b| a < b)));
+  data.insert("<=".to_string(), RispExp::Func(ensure_tonicity!(|a, b| a <= b)));
   RispEnv {data, outer: None}
-}
-
-fn parse_list_of_floats(args: &[RispExp]) -> Result<Vec<f64>, RispErr> {
-  args
-    .iter()
-    .map(|x| parse_single_float(x))
-    .collect()
-}
-
-fn parse_single_float(exp: &RispExp) -> Result<f64, RispErr> {
-  match exp {
-    RispExp::Number(num) => Ok(*num),
-    _ => Err(RispErr::Reason("expected a number".to_string())),
-  }
 }
 
 /*
