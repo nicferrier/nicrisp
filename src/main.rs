@@ -235,6 +235,9 @@ fn default_env<'a>() -> RispEnv<'a> {
   let mut data: HashMap<String, RispExp> = HashMap::new();
   data.insert("httpget".to_string(), http::httpget_func());
   data.insert("num".to_string(), lists::number_sequence());
+  data.insert("list".to_string(), lists::list());
+  data.insert("car".to_string(), lists::car());
+  data.insert("cdr".to_string(), lists::cdr());
   data.insert("*".to_string(), math::mult_func());
   data.insert("+".to_string(), math::plus_func());
   data.insert("-".to_string(), math::minus_func());

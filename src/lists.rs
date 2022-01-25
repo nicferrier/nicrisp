@@ -1,6 +1,48 @@
 use super::RispExp;
 use super::RispErr;
 
+pub fn list() -> RispExp {
+    RispExp::Func(
+	|args: &[RispExp]| -> Result<RispExp, RispErr> {
+	    let mut res: Vec<RispExp> = Vec::new();
+	    for m in args {
+		res.push(m.clone());
+	    }
+	    Ok(RispExp::List(res))
+	}
+    )
+}
+
+pub fn car() -> RispExp {
+    RispExp::Func(
+	|args: &[RispExp]| -> Result<RispExp, RispErr> {
+	    if args.len() < 1 {
+		return Err(RispErr::Reason("pass a list".to_string()));
+	    }
+
+	    match &args[0] {
+		RispExp::List(list) => return Ok(list[0].clone()),
+		_ => return Err(RispErr::Reason("arg is not a list".to_string()))
+	    }
+	}
+    )
+}
+
+pub fn cdr() -> RispExp {
+    RispExp::Func(
+	|args: &[RispExp]| -> Result<RispExp, RispErr> {
+	    if args.len() < 1 {
+		return Err(RispErr::Reason("pass a list".to_string()));
+	    }
+
+	    match &args[0] {
+		RispExp::List(list) => return Ok(RispExp::List(list[1..].to_vec())),
+		_ => return Err(RispErr::Reason("arg is not a list".to_string()))
+	    }
+	}
+    )
+}
+
 pub fn number_sequence() -> RispExp {
     RispExp::Func(
       |args: &[RispExp]| -> Result<RispExp, RispErr> {
