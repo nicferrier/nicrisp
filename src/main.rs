@@ -234,6 +234,7 @@ macro_rules! ensure_tonicity {
 fn default_env<'a>() -> RispEnv<'a> {
   let mut data: HashMap<String, RispExp> = HashMap::new();
   data.insert("httpget".to_string(), http::httpget_func());
+  data.insert("jget".to_string(), jsontypes::get_func());
   data.insert("num".to_string(), lists::number_sequence());
   data.insert("list".to_string(), lists::list());
   data.insert("car".to_string(), lists::car());
