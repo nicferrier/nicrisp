@@ -20,10 +20,16 @@ pub fn car() -> RispExp {
 		return Err(RispErr::Reason("pass a list".to_string()));
 	    }
 
-	    match &args[0] {
-		RispExp::List(list) => return Ok(list[0].clone()),
+	    let l = match &args[0] {
+		RispExp::List(list) => list,
 		_ => return Err(RispErr::Reason("arg is not a list".to_string()))
+	    };
+	    
+	    if l.len() < 1 {
+		return Err(RispErr::Reason("empty list".to_string()));
 	    }
+
+	    Ok(l[0].clone())
 	}
     )
 }
@@ -35,10 +41,16 @@ pub fn cdr() -> RispExp {
 		return Err(RispErr::Reason("pass a list".to_string()));
 	    }
 
-	    match &args[0] {
-		RispExp::List(list) => return Ok(RispExp::List(list[1..].to_vec())),
+	    let l = match &args[0] {
+		RispExp::List(list) => list,
 		_ => return Err(RispErr::Reason("arg is not a list".to_string()))
+	    };
+	    
+	    if l.len() < 1 {
+		return Err(RispErr::Reason("empty list".to_string()));
 	    }
+
+	    Ok(RispExp::List(l[1..].to_vec()))
 	}
     )
 }
